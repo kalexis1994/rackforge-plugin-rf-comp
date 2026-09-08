@@ -1,0 +1,21 @@
+[package]
+name = "rf-comp-lab"
+description = "Metadata generator and bench for RF-Comp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "rf-comp-lab"
+path = "src/main.rs"
+
+[dependencies]
+rf-comp-contract.workspace = true
+rf-comp-dsp.workspace = true
+hound = "3.5"
+serde_json = "1.0"
+
+[dev-dependencies]
+rackforge-plugin-runtime.workspace = true
+rf-comp-contract.workspace = true

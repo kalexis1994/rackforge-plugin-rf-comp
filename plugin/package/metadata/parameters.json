@@ -1,0 +1,339 @@
+{
+  "pages": [
+    {
+      "id": "compressor",
+      "name": "Compressor",
+      "order": 0
+    },
+    {
+      "id": "output",
+      "name": "Output",
+      "order": 1
+    }
+  ],
+  "parameters": [
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": true,
+        "modulatable": true,
+        "read_only": false
+      },
+      "id": "comp.threshold",
+      "index": 0,
+      "kind": {
+        "default": -18.0,
+        "maximum": 0.0,
+        "minimum": -60.0,
+        "step": 0.1,
+        "taper": "linear",
+        "type": "float",
+        "unit": "dB"
+      },
+      "name": "Threshold",
+      "order": 0,
+      "page": "compressor",
+      "suggested_control": "knob"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": true,
+        "modulatable": true,
+        "read_only": false
+      },
+      "id": "comp.ratio",
+      "index": 1,
+      "kind": {
+        "default": 4.0,
+        "maximum": 20.0,
+        "minimum": 1.0,
+        "step": 0.1,
+        "taper": "logarithmic",
+        "type": "float",
+        "unit": ":1"
+      },
+      "name": "Ratio",
+      "order": 1,
+      "page": "compressor",
+      "suggested_control": "knob"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": true,
+        "modulatable": true,
+        "read_only": false
+      },
+      "id": "comp.attack",
+      "index": 2,
+      "kind": {
+        "default": 10.0,
+        "maximum": 100.0,
+        "minimum": 0.1,
+        "step": 0.1,
+        "taper": "logarithmic",
+        "type": "float",
+        "unit": "ms"
+      },
+      "name": "Attack",
+      "order": 3,
+      "page": "compressor",
+      "suggested_control": "knob"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": true,
+        "modulatable": true,
+        "read_only": false
+      },
+      "id": "comp.release",
+      "index": 3,
+      "kind": {
+        "default": 120.0,
+        "maximum": 2000.0,
+        "minimum": 10.0,
+        "step": 1.0,
+        "taper": "logarithmic",
+        "type": "float",
+        "unit": "ms"
+      },
+      "name": "Release",
+      "order": 4,
+      "page": "compressor",
+      "suggested_control": "knob"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": true,
+        "modulatable": false,
+        "read_only": false
+      },
+      "id": "comp.auto_release",
+      "index": 4,
+      "kind": {
+        "default": false,
+        "type": "boolean"
+      },
+      "name": "Auto Release",
+      "order": 5,
+      "page": "compressor",
+      "suggested_control": "toggle"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": true,
+        "modulatable": true,
+        "read_only": false
+      },
+      "id": "comp.knee",
+      "index": 5,
+      "kind": {
+        "default": 6.0,
+        "maximum": 24.0,
+        "minimum": 0.0,
+        "step": 0.1,
+        "taper": "linear",
+        "type": "float",
+        "unit": "dB"
+      },
+      "name": "Knee",
+      "order": 2,
+      "page": "compressor",
+      "suggested_control": "knob"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": true,
+        "modulatable": false,
+        "read_only": false
+      },
+      "id": "comp.detector",
+      "index": 6,
+      "kind": {
+        "choices": [
+          {
+            "name": "Peak",
+            "value": 0
+          },
+          {
+            "name": "RMS",
+            "value": 1
+          }
+        ],
+        "default": 1,
+        "type": "enum"
+      },
+      "name": "Detector",
+      "order": 6,
+      "page": "compressor",
+      "suggested_control": "list"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": true,
+        "modulatable": false,
+        "read_only": false
+      },
+      "id": "comp.sidechain_hpf",
+      "index": 7,
+      "kind": {
+        "choices": [
+          {
+            "name": "Off",
+            "value": 0
+          },
+          {
+            "name": "60 Hz",
+            "value": 1
+          },
+          {
+            "name": "120 Hz",
+            "value": 2
+          },
+          {
+            "name": "250 Hz",
+            "value": 3
+          }
+        ],
+        "default": 0,
+        "type": "enum"
+      },
+      "name": "Sidechain HPF",
+      "order": 7,
+      "page": "compressor",
+      "suggested_control": "list"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": true,
+        "modulatable": true,
+        "read_only": false
+      },
+      "id": "comp.link",
+      "index": 8,
+      "kind": {
+        "default": 100.0,
+        "maximum": 100.0,
+        "minimum": 0.0,
+        "step": 1.0,
+        "taper": "linear",
+        "type": "float",
+        "unit": "%"
+      },
+      "name": "Stereo Link",
+      "order": 8,
+      "page": "compressor",
+      "suggested_control": "knob"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": true,
+        "modulatable": true,
+        "read_only": false
+      },
+      "id": "output.makeup",
+      "index": 9,
+      "kind": {
+        "default": 0.0,
+        "maximum": 24.0,
+        "minimum": -24.0,
+        "step": 0.1,
+        "taper": "linear",
+        "type": "float",
+        "unit": "dB"
+      },
+      "name": "Makeup",
+      "order": 0,
+      "page": "output",
+      "suggested_control": "knob"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": true,
+        "modulatable": false,
+        "read_only": false
+      },
+      "id": "output.auto_makeup",
+      "index": 10,
+      "kind": {
+        "default": false,
+        "type": "boolean"
+      },
+      "name": "Auto Makeup",
+      "order": 1,
+      "page": "output",
+      "suggested_control": "toggle"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": true,
+        "modulatable": true,
+        "read_only": false
+      },
+      "id": "output.mix",
+      "index": 11,
+      "kind": {
+        "default": 100.0,
+        "maximum": 100.0,
+        "minimum": 0.0,
+        "step": 1.0,
+        "taper": "linear",
+        "type": "float",
+        "unit": "%"
+      },
+      "name": "Mix",
+      "order": 2,
+      "page": "output",
+      "suggested_control": "knob"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": true,
+        "modulatable": false,
+        "read_only": false
+      },
+      "id": "output.bypass",
+      "index": 12,
+      "kind": {
+        "default": false,
+        "type": "boolean"
+      },
+      "name": "Bypass",
+      "order": 3,
+      "page": "output",
+      "suggested_control": "toggle"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": false,
+        "modulatable": false,
+        "read_only": true
+      },
+      "id": "output.reduction",
+      "index": 13,
+      "kind": {
+        "maximum": 0.0,
+        "minimum": -40.0,
+        "type": "meter",
+        "unit": "dB"
+      },
+      "name": "Gain Reduction",
+      "order": 4,
+      "page": "output",
+      "suggested_control": "meter"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,62 @@
+{
+  "banks": [
+    {
+      "id": "factory",
+      "name": "Factory",
+      "order": 0
+    }
+  ],
+  "presets": [
+    {
+      "bank": "factory",
+      "category": "Setting",
+      "description": "Four to one over a six-decibel knee at minus eighteen: a general-purpose starting point.",
+      "editable": false,
+      "id": "default",
+      "name": "Default",
+      "order": 0,
+      "tags": []
+    },
+    {
+      "bank": "factory",
+      "category": "Setting",
+      "description": "Two to one over a wide knee, a slow attack and the release left to the programme: holds a piano together without touching its transients.",
+      "editable": false,
+      "id": "piano_glue",
+      "name": "Piano Glue",
+      "order": 1,
+      "tags": []
+    },
+    {
+      "bank": "factory",
+      "category": "Setting",
+      "description": "Eight to one, a millisecond of attack, a peak detector with the low end filtered out of it: catches what sticks out.",
+      "editable": false,
+      "id": "peak_tamer",
+      "name": "Peak Tamer",
+      "order": 2,
+      "tags": []
+    },
+    {
+      "bank": "factory",
+      "category": "Setting",
+      "description": "Ten to one from minus thirty, made up automatically and blended at forty percent: density under the dry signal.",
+      "editable": false,
+      "id": "parallel_crush",
+      "name": "Parallel Crush",
+      "order": 3,
+      "tags": []
+    },
+    {
+      "bank": "factory",
+      "category": "Setting",
+      "description": "Three to one over a nine-decibel knee, the release following the programme: level without a hand on the fader.",
+      "editable": false,
+      "id": "vocal_smooth",
+      "name": "Vocal-ish Smooth",
+      "order": 4,
+      "tags": []
+    }
+  ],
+  "schema_version": 1
+}
