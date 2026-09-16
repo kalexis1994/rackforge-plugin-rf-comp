@@ -14,7 +14,7 @@ pub struct Preset {
     pub values: &'static [(u32, f32)],
 }
 
-pub const PRESET_COUNT: usize = 5;
+pub const PRESET_COUNT: usize = 7;
 
 pub const PRESETS: [Preset; PRESET_COUNT] = [
     Preset {
@@ -36,6 +36,7 @@ pub const PRESETS: [Preset; PRESET_COUNT] = [
             (KNEE, 12.0),
             (DETECTOR, DETECTOR_RMS as f32),
             (MIX, 100.0),
+            (RANGE, 8.0),
         ],
     },
     Preset {
@@ -50,6 +51,7 @@ pub const PRESETS: [Preset; PRESET_COUNT] = [
             (KNEE, 3.0),
             (DETECTOR, DETECTOR_PEAK as f32),
             (SIDECHAIN_HPF, 1.0),
+            (RANGE, 6.0),
         ],
     },
     Preset {
@@ -64,6 +66,7 @@ pub const PRESETS: [Preset; PRESET_COUNT] = [
             (KNEE, 6.0),
             (MIX, 40.0),
             (AUTO_MAKEUP, 1.0),
+            (RANGE, 12.0),
         ],
     },
     Preset {
@@ -77,6 +80,36 @@ pub const PRESETS: [Preset; PRESET_COUNT] = [
             (RELEASE, 150.0),
             (AUTO_RELEASE, 1.0),
             (KNEE, 9.0),
+            (RANGE, 8.0),
+        ],
+    },
+    Preset {
+        id: "drum_bus",
+        name: "Drum Bus",
+        description: "Four to one with a twenty-millisecond attack and six decibels of range: adds movement while keeping the first hit intact.",
+        values: &[
+            (THRESHOLD, -18.0),
+            (RATIO, 4.0),
+            (ATTACK, 20.0),
+            (RELEASE, 100.0),
+            (KNEE, 6.0),
+            (DETECTOR, DETECTOR_PEAK as f32),
+            (SIDECHAIN_HPF, 1.0),
+            (RANGE, 6.0),
+        ],
+    },
+    Preset {
+        id: "level_rider",
+        name: "Level Rider",
+        description: "Two to one over a broad knee with automatic release and eight decibels of range: restrained long-term levelling.",
+        values: &[
+            (THRESHOLD, -28.0),
+            (RATIO, 2.0),
+            (ATTACK, 40.0),
+            (RELEASE, 300.0),
+            (AUTO_RELEASE, 1.0),
+            (KNEE, 12.0),
+            (RANGE, 8.0),
         ],
     },
 ];

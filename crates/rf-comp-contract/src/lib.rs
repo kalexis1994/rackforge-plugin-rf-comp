@@ -13,12 +13,12 @@ pub mod preset;
 pub use preset::{PRESET_COUNT, PRESETS, Preset, settings_for};
 
 /// Number of public parameters. Also the length of the state block in `f32`s.
-pub const PARAMETER_COUNT: usize = 14;
+pub const PARAMETER_COUNT: usize = 18;
 
 /// The parameter count of each earlier state layout, so a block saved by an
 /// older build can still be read. Length is the only thing that identifies a
 /// layout here, which is why parameters are only ever appended.
-pub const PREVIOUS_PARAMETER_COUNTS: [usize; 0] = [];
+pub const PREVIOUS_PARAMETER_COUNTS: [usize; 1] = [14];
 
 /// Editor pages. RackForge renders them in `order`; the web surface uses the
 /// same identifiers to group its controls.
@@ -28,16 +28,21 @@ pub struct PageSpec {
     pub order: i32,
 }
 
-pub const PAGES: [PageSpec; 2] = [
+pub const PAGES: [PageSpec; 3] = [
     PageSpec {
         id: "compressor",
-        name: "Compressor",
+        name: "Compression",
         order: 0,
+    },
+    PageSpec {
+        id: "timing",
+        name: "Timing & Detector",
+        order: 1,
     },
     PageSpec {
         id: "output",
         name: "Output",
-        order: 1,
+        order: 2,
     },
 ];
 
@@ -290,6 +295,29 @@ const fn choice(
     }
 }
 
+const fn meter(
+    index: u32,
+    id: &'static str,
+    name: &'static str,
+    order: i32,
+    minimum: f32,
+    maximum: f32,
+) -> ParameterSpec {
+    ParameterSpec {
+        index,
+        id,
+        name,
+        page: "output",
+        order,
+        kind: Kind::Meter {
+            minimum,
+            maximum,
+            unit: Some("dB"),
+        },
+        control: Control::Meter,
+    }
+}
+
 /// The top of the ratio knob. The engine treats it as infinite — a limiter's
 /// slope — and the surface labels it so.
 pub const RATIO_MAX: f32 = 20.0;
@@ -325,7 +353,7 @@ pub const PARAMETERS: [ParameterSpec; PARAMETER_COUNT] = [
         2,
         "comp.attack",
         "Attack",
-        "compressor",
+        "timing",
         3,
         0.1,
         100.0,
@@ -336,27 +364,20 @@ pub const PARAMETERS: [ParameterSpec; PARAMETER_COUNT] = [
         3,
         "comp.release",
         "Release",
-        "compressor",
+        "timing",
         4,
         10.0,
         2000.0,
         120.0,
         1.0,
     ),
-    switch(
-        4,
-        "comp.auto_release",
-        "Auto Release",
-        "compressor",
-        5,
-        false,
-    ),
+    switch(4, "comp.auto_release", "Auto Release", "timing", 5, false),
     decibels(5, "comp.knee", "Knee", "compressor", 2, 0.0, 24.0, 6.0),
     choice(
         6,
         "comp.detector",
         "Detector",
-        "compressor",
+        "timing",
         6,
         1,
         &["Peak", "RMS"],
@@ -365,12 +386,12 @@ pub const PARAMETERS: [ParameterSpec; PARAMETER_COUNT] = [
         7,
         "comp.sidechain_hpf",
         "Sidechain HPF",
-        "compressor",
+        "timing",
         7,
         0,
         &["Off", "60 Hz", "120 Hz", "250 Hz"],
     ),
-    percent(8, "comp.link", "Stereo Link", "compressor", 8, 100.0),
+    percent(8, "comp.link", "Stereo Link", "timing", 8, 100.0),
     decibels(9, "output.makeup", "Makeup", "output", 0, -24.0, 24.0, 0.0),
     switch(10, "output.auto_makeup", "Auto Makeup", "output", 1, false),
     percent(11, "output.mix", "Mix", "output", 2, 100.0),
@@ -388,6 +409,17 @@ pub const PARAMETERS: [ParameterSpec; PARAMETER_COUNT] = [
         },
         control: Control::Meter,
     },
+    decibels(14, "comp.range", "Range", "compressor", 3, 0.0, 60.0, 60.0),
+    switch(
+        15,
+        "comp.sidechain_listen",
+        "Sidechain Listen",
+        "timing",
+        9,
+        false,
+    ),
+    meter(16, "meter.input", "Input", 5, -60.0, 12.0),
+    meter(17, "meter.output", "Output", 6, -60.0, 12.0),
 ];
 
 /// The flat settings block: one `f32` per parameter, in index order. It is
@@ -559,6 +591,10 @@ mod tests {
         expect(index::MIX, "output.mix");
         expect(index::BYPASS, "output.bypass");
         expect(index::REDUCTION, "output.reduction");
+        expect(index::RANGE, "comp.range");
+        expect(index::SIDECHAIN_LISTEN, "comp.sidechain_listen");
+        expect(index::INPUT_LEVEL, "meter.input");
+        expect(index::OUTPUT_LEVEL, "meter.output");
     }
 
     #[test]

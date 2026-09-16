@@ -3,12 +3,16 @@
 A feed-forward stereo compressor for [RackForge](https://github.com/kalexis1994/rackforge):
 a threshold, a ratio and a soft knee, attack and release with a
 programme-dependent option, a peak or RMS detector behind a high-pass
-sidechain, stereo link, makeup, a parallel mix, and a gain-reduction meter.
+sidechain, bounded reduction, stereo link, makeup, a parallel mix, and live
+input, output and gain-reduction meters. Its PLAY surface draws the transfer
+curve from the same equation as the engine and lets the threshold move directly
+on the graph.
 The effect that holds a piano's dynamics together before the limiter catches
 what is left.
 
-> `v0.1.0` is the first working version. The engine runs, the package
-> installs, and the limits are the ones stated here.
+> `v0.2.0` keeps every `v0.1.0` parameter index and migrates its fourteen-value
+> state block. Range, detector listen and the two level meters are appended, so
+> existing sessions reopen with the original unlimited reduction behaviour.
 
 ## How it decides
 
@@ -33,7 +37,11 @@ once per side per sample, with no latency.
 both get the same gain and the image stays where it was; at zero each side
 has its own detector and envelope. *Sidechain HPF* is a second-order
 Butterworth on the detector path only, so a bass note does not pump the
-whole mix. *Auto Makeup* adds half the reduction the curve would take from a
+whole mix. *Sidechain Listen* routes that filtered detector signal to the
+output for setup; bypass still returns the exact input. *Range* caps the
+steady-state reduction before the attack and release stages, which makes a
+strong ratio useful without allowing the compressor to disappear deep into a
+sound. *Auto Makeup* adds half the reduction the curve would take from a
 full-scale signal — the common rule — to whatever *Makeup* says. *Mix*
 blends the compressed signal under the dry one for parallel compression;
 either end of the knob is exact. The ratio knob's top reads `∞:1` and the
@@ -49,27 +57,32 @@ does not zipper.
 | Threshold | −60 … 0 dB | Where the curve starts to bend. |
 | Ratio | 1 … ∞:1 | The slope above the knee. |
 | Knee | 0 … 24 dB | The width over which the bend is spread. |
+| Range | 0 … 60 dB | Maximum gain reduction; 60 dB preserves the original behaviour. |
 | Attack | 0.1 … 100 ms | How fast the reduction sets in. |
 | Release | 10 … 2000 ms | How fast it lets go, when Auto Release is off. |
 | Auto Release | on/off | Programme-dependent release. |
 | Detector | Peak / RMS | What the sidechain measures. |
 | Sidechain HPF | Off / 60 / 120 / 250 Hz | The low end kept out of the detector. |
+| Sidechain Listen | on/off | Auditions the filtered detector path while setting it. |
 | Stereo Link | 0 … 100 % | How much of the louder side each side hears. |
 | Makeup | −24 … +24 dB | Gain after the reduction. |
 | Auto Makeup | on/off | Adds half the reduction at full scale. |
 | Mix | 0 … 100 % | Compressed signal under the dry one. |
 | Bypass | on/off | The input, untouched. |
 | Gain Reduction | meter | How much is being taken away, in dB. |
+| Input / Output | meters | Live peak levels around the compressor, in dBFS. |
 
 ## Factory settings
 
-| Setting | Threshold | Ratio | Attack | Release | Knee | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| Default | −18 dB | 4:1 | 10 ms | 120 ms | 6 dB | RMS, linked. |
-| Piano Glue | −24 dB | 2:1 | 30 ms | 200 ms, auto | 12 dB | RMS, mix 100 %. |
-| Peak Tamer | −12 dB | 8:1 | 1 ms | 80 ms | 3 dB | Peak, sidechain HPF 60 Hz. |
-| Parallel Crush | −30 dB | 10:1 | 5 ms | 150 ms | 6 dB | Mix 40 %, auto makeup. |
-| Vocal-ish Smooth | −20 dB | 3:1 | 15 ms | 150 ms, auto | 9 dB | |
+| Setting | Threshold | Ratio | Attack | Release | Knee | Range | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Default | −18 dB | 4:1 | 10 ms | 120 ms | 6 dB | 60 dB | RMS, linked. |
+| Piano Glue | −24 dB | 2:1 | 30 ms | 200 ms, auto | 12 dB | 8 dB | Transparent cohesion. |
+| Peak Tamer | −12 dB | 8:1 | 1 ms | 80 ms | 3 dB | 6 dB | Peak, sidechain HPF 60 Hz. |
+| Parallel Crush | −30 dB | 10:1 | 5 ms | 150 ms | 6 dB | 12 dB | Mix 40 %, auto makeup. |
+| Vocal-ish Smooth | −20 dB | 3:1 | 15 ms | 150 ms, auto | 9 dB | 8 dB | Programme release. |
+| Drum Bus | −18 dB | 4:1 | 20 ms | 100 ms | 6 dB | 6 dB | Peak, sidechain HPF 60 Hz. |
+| Level Rider | −28 dB | 2:1 | 40 ms | 300 ms, auto | 12 dB | 8 dB | Restrained long-term levelling. |
 
 ## Build and install
 

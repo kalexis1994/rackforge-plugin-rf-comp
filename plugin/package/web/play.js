@@ -40,6 +40,15 @@
   const panelElement = document.getElementById("panel");
   const presetElement = document.getElementById("presets");
   const statusElement = document.getElementById("status");
+  const transferPanel = document.getElementById("transfer-panel");
+  const transfer = document.getElementById("transfer");
+  const transferCurve = document.getElementById("transfer-curve");
+  const transferFill = document.getElementById("transfer-fill");
+  const transferThreshold = document.getElementById("transfer-threshold");
+  const thresholdNode = document.getElementById("threshold-node");
+  const operatingPoint = document.getElementById("operating-point");
+  const transferReading = document.getElementById("transfer-reading");
+  const transferSummary = document.getElementById("transfer-summary");
 
   const state = {
     surface: "play",
@@ -64,6 +73,7 @@
   let lastWriteAt = 0;
   let refreshTimer = null;
   let statusTimer = null;
+  let curveFrame = null;
 
   /* --------------------------------------------------------------- bridge */
 
@@ -194,8 +204,21 @@
     if (Number.isFinite(stored)) return stored;
     const kind = parameter.kind;
     if (kind.type === "boolean") return kind.default ? 1 : 0;
-    if (kind.type === "meter") return kind.maximum;
+    if (kind.type === "meter") {
+      return parameter.id === "meter.input" || parameter.id === "meter.output"
+        ? kind.minimum
+        : kind.maximum;
+    }
     return kind.default;
+  }
+
+  function parameterById(id) {
+    return state.schema && state.schema.parameters.find((parameter) => parameter.id === id);
+  }
+
+  function valueById(id, fallback) {
+    const parameter = parameterById(id);
+    return parameter ? valueOf(parameter) : fallback;
   }
 
   /* ------------------------------------------------------------ write path */
@@ -206,6 +229,7 @@
     state.values.set(parameter.index, value);
     state.queue.set(parameter.index, value);
     state.writtenAt.set(parameter.index, writeEpoch);
+    scheduleCurve();
     if (!state.edited) {
       state.edited = true;
       idle();
@@ -435,7 +459,7 @@
     wrapper.className = "knob";
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "toggle";
+    button.className = "toggle" + (parameter.id === "comp.sidechain_listen" ? " listen" : "");
     button.textContent = parameter.name;
     button.setAttribute("aria-label", parameter.name);
     button.addEventListener("click", () => {
@@ -497,11 +521,12 @@
     return wrapper;
   }
 
-  /** A reading from the engine: a bar from the right, as gain reduction is drawn. */
+  /** A reading from the engine: reduction retreats from the right; levels rise from the left. */
   function meterControl(parameter) {
     const kind = parameter.kind;
     const wrapper = document.createElement("div");
-    wrapper.className = "knob wide meter";
+    const levelMeter = parameter.id === "meter.input" || parameter.id === "meter.output";
+    wrapper.className = "knob wide meter" + (levelMeter ? " level" : " reduction");
     const label = document.createElement("div");
     label.className = "label";
     label.textContent = parameter.name;
@@ -526,7 +551,9 @@
 
     function paint(value) {
       const clamped = Math.min(kind.maximum, Math.max(kind.minimum, value));
-      const fraction = (kind.maximum - clamped) / (kind.maximum - kind.minimum);
+      const fraction = levelMeter
+        ? (clamped - kind.minimum) / (kind.maximum - kind.minimum)
+        : (kind.maximum - clamped) / (kind.maximum - kind.minimum);
       fill.style.width = (fraction * 100).toFixed(1) + "%";
       reading.textContent = formatValue(parameter, clamped);
       track.setAttribute("aria-valuenow", String(clamped));
@@ -566,6 +593,175 @@
     card.append(name, knobs);
     return card;
   }
+
+  /* ------------------------------------------------------ transfer curve */
+
+  const CURVE_MIN = -60;
+  const CURVE_MAX = 6;
+  const PLOT_MIN = 5;
+  const PLOT_MAX = 95;
+
+  function curveReduction(level, threshold, ratio, knee, range) {
+    const slope = ratio >= 20 ? 0 : 1 / ratio;
+    const over = level - threshold;
+    const half = knee * 0.5;
+    let reduction;
+    if (over <= -half) reduction = 0;
+    else if (over >= half) reduction = (1 - slope) * over;
+    else {
+      const into = over + half;
+      reduction = (1 - slope) * into * into / (2 * knee);
+    }
+    return Math.min(range, Math.max(0, reduction));
+  }
+
+  function mapLevel(level) {
+    const position = (Math.min(CURVE_MAX, Math.max(CURVE_MIN, level)) - CURVE_MIN) /
+      (CURVE_MAX - CURVE_MIN);
+    return PLOT_MIN + position * (PLOT_MAX - PLOT_MIN);
+  }
+
+  function curveOutput(level, settings) {
+    if (settings.bypass) return level;
+    const reduction = curveReduction(
+      level,
+      settings.threshold,
+      settings.ratio,
+      settings.knee,
+      settings.range,
+    );
+    const wetGain = Math.pow(10, (settings.makeup - reduction) / 20);
+    const blendedGain = (1 - settings.mix) + settings.mix * wetGain;
+    return level + 20 * Math.log10(Math.max(1.0e-6, blendedGain));
+  }
+
+  function curveSettings() {
+    const threshold = valueById("comp.threshold", -18);
+    const ratio = valueById("comp.ratio", 4);
+    const knee = valueById("comp.knee", 6);
+    const range = valueById("comp.range", 60);
+    const automatic = valueById("output.auto_makeup", 0) >= 0.5
+      ? 0.5 * curveReduction(0, threshold, ratio, knee, range)
+      : 0;
+    return {
+      threshold,
+      ratio,
+      knee,
+      range,
+      makeup: valueById("output.makeup", 0) + automatic,
+      mix: valueById("output.mix", 100) * 0.01,
+      bypass: valueById("output.bypass", 0) >= 0.5,
+      listen: valueById("comp.sidechain_listen", 0) >= 0.5,
+    };
+  }
+
+  function renderCurve() {
+    curveFrame = null;
+    if (!state.schema) return;
+    const settings = curveSettings();
+    const points = [];
+    const unity = [];
+    const steps = 96;
+    for (let index = 0; index <= steps; index += 1) {
+      const level = CURVE_MIN + (index / steps) * (CURVE_MAX - CURVE_MIN);
+      const x = mapLevel(level);
+      const output = curveOutput(level, settings);
+      points.push([x, PLOT_MAX - (mapLevel(output) - PLOT_MIN)]);
+      unity.push([x, PLOT_MAX - (mapLevel(level) - PLOT_MIN)]);
+    }
+    const path = points.map((point, index) =>
+      (index === 0 ? "M " : " L ") + point[0].toFixed(2) + " " + point[1].toFixed(2),
+    ).join("");
+    const fill = path + unity.reverse().map((point) =>
+      " L " + point[0].toFixed(2) + " " + point[1].toFixed(2),
+    ).join("") + " Z";
+    transferCurve.setAttribute("d", path);
+    transferFill.setAttribute("d", fill);
+
+    const thresholdX = mapLevel(settings.threshold);
+    const thresholdY = PLOT_MAX - (mapLevel(curveOutput(settings.threshold, settings)) - PLOT_MIN);
+    transferThreshold.setAttribute("x1", thresholdX.toFixed(2));
+    transferThreshold.setAttribute("x2", thresholdX.toFixed(2));
+    thresholdNode.setAttribute("cx", thresholdX.toFixed(2));
+    thresholdNode.setAttribute("cy", thresholdY.toFixed(2));
+
+    const input = valueById("meter.input", CURVE_MIN);
+    const output = valueById("meter.output", CURVE_MIN);
+    operatingPoint.setAttribute("cx", mapLevel(input).toFixed(2));
+    operatingPoint.setAttribute("cy", (PLOT_MAX - (mapLevel(output) - PLOT_MIN)).toFixed(2));
+    operatingPoint.style.opacity = input <= CURVE_MIN + 0.1 ? "0" : "1";
+
+    transfer.setAttribute("aria-valuenow", String(settings.threshold));
+    transfer.setAttribute("aria-valuetext", settings.threshold.toFixed(1) + " dB");
+    transferReading.textContent = settings.threshold.toFixed(1).replace("-", "−") + " dB";
+    const ratioLabel = settings.ratio >= 20 ? "∞:1" : settings.ratio.toFixed(1) + ":1";
+    transferSummary.textContent = settings.listen
+      ? "Sidechain listen · detector output"
+      : ratioLabel + " · " + settings.knee.toFixed(1) + " dB knee · " +
+        settings.range.toFixed(0) + " dB range";
+    transferPanel.classList.toggle("listen", settings.listen);
+    transferCurve.style.opacity = settings.listen ? "0.35" : "1";
+    transferFill.style.opacity = settings.listen ? "0.2" : "1";
+  }
+
+  function scheduleCurve() {
+    if (curveFrame !== null) return;
+    curveFrame = requestAnimationFrame(renderCurve);
+  }
+
+  function thresholdFromPointer(event) {
+    const parameter = parameterById("comp.threshold");
+    if (!parameter) return;
+    const bounds = transfer.getBoundingClientRect();
+    const position = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width));
+    const plotPosition = Math.min(1, Math.max(0, (position * 100 - PLOT_MIN) / (PLOT_MAX - PLOT_MIN)));
+    const raw = CURVE_MIN + plotPosition * (CURVE_MAX - CURVE_MIN);
+    const step = parameter.kind.step || 0.1;
+    const value = Math.min(0, Math.max(-60, Math.round(raw / step) * step));
+    write(parameter, value);
+    const widget = state.controls.get(parameter.index);
+    if (widget) widget.apply(value);
+  }
+
+  let thresholdPointer = null;
+  transfer.addEventListener("pointerdown", (event) => {
+    const parameter = parameterById("comp.threshold");
+    if (!parameter) return;
+    thresholdPointer = event.pointerId;
+    state.held.add(parameter.index);
+    capture(transfer, thresholdPointer);
+    gestures.add(finishThreshold);
+    thresholdFromPointer(event);
+    event.preventDefault();
+  });
+  transfer.addEventListener("pointermove", (event) => {
+    if (thresholdPointer !== event.pointerId) return;
+    thresholdFromPointer(event);
+  });
+  function finishThreshold(event) {
+    if (thresholdPointer === null || (event && event.pointerId !== thresholdPointer)) return;
+    const parameter = parameterById("comp.threshold");
+    if (parameter) state.held.delete(parameter.index);
+    gestures.delete(finishThreshold);
+    releaseCapture(transfer, thresholdPointer);
+    thresholdPointer = null;
+    scheduleRefresh();
+  }
+  transfer.addEventListener("pointerup", finishThreshold);
+  transfer.addEventListener("pointercancel", finishThreshold);
+  transfer.addEventListener("lostpointercapture", finishThreshold);
+  transfer.addEventListener("keydown", (event) => {
+    const parameter = parameterById("comp.threshold");
+    if (!parameter) return;
+    let value = valueOf(parameter);
+    if (event.key === "ArrowLeft" || event.key === "ArrowDown") value -= event.shiftKey ? 0.1 : 1;
+    else if (event.key === "ArrowRight" || event.key === "ArrowUp") value += event.shiftKey ? 0.1 : 1;
+    else if (event.key === "Home") value = -60;
+    else if (event.key === "End") value = 0;
+    else return;
+    event.preventDefault();
+    write(parameter, Math.min(0, Math.max(-60, Math.round(value * 10) / 10)));
+  });
 
   /* -------------------------------------------------------------- meters */
 
@@ -622,6 +818,7 @@
       const widget = state.controls.get(entry.index);
       if (widget) widget.apply(entry.value);
     });
+    scheduleCurve();
   }
 
   function scheduleRefresh(delay) {
@@ -661,6 +858,7 @@
       .sort((left, right) => (left.order || 0) - (right.order || 0))
       .forEach((page) => panelElement.appendChild(groupCard(page)));
     state.built = true;
+    scheduleCurve();
   }
 
   parent.postMessage({ protocol: PROTOCOL, kind: "ready" }, "*");

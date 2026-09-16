@@ -2,13 +2,18 @@
   "pages": [
     {
       "id": "compressor",
-      "name": "Compressor",
+      "name": "Compression",
       "order": 0
+    },
+    {
+      "id": "timing",
+      "name": "Timing & Detector",
+      "order": 1
     },
     {
       "id": "output",
       "name": "Output",
-      "order": 1
+      "order": 2
     }
   ],
   "parameters": [
@@ -78,7 +83,7 @@
       },
       "name": "Attack",
       "order": 3,
-      "page": "compressor",
+      "page": "timing",
       "suggested_control": "knob"
     },
     {
@@ -101,7 +106,7 @@
       },
       "name": "Release",
       "order": 4,
-      "page": "compressor",
+      "page": "timing",
       "suggested_control": "knob"
     },
     {
@@ -119,7 +124,7 @@
       },
       "name": "Auto Release",
       "order": 5,
-      "page": "compressor",
+      "page": "timing",
       "suggested_control": "toggle"
     },
     {
@@ -170,7 +175,7 @@
       },
       "name": "Detector",
       "order": 6,
-      "page": "compressor",
+      "page": "timing",
       "suggested_control": "list"
     },
     {
@@ -206,7 +211,7 @@
       },
       "name": "Sidechain HPF",
       "order": 7,
-      "page": "compressor",
+      "page": "timing",
       "suggested_control": "list"
     },
     {
@@ -229,7 +234,7 @@
       },
       "name": "Stereo Link",
       "order": 8,
-      "page": "compressor",
+      "page": "timing",
       "suggested_control": "knob"
     },
     {
@@ -331,6 +336,87 @@
       },
       "name": "Gain Reduction",
       "order": 4,
+      "page": "output",
+      "suggested_control": "meter"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": true,
+        "modulatable": true,
+        "read_only": false
+      },
+      "id": "comp.range",
+      "index": 14,
+      "kind": {
+        "default": 60.0,
+        "maximum": 60.0,
+        "minimum": 0.0,
+        "step": 0.1,
+        "taper": "linear",
+        "type": "float",
+        "unit": "dB"
+      },
+      "name": "Range",
+      "order": 3,
+      "page": "compressor",
+      "suggested_control": "knob"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": true,
+        "modulatable": false,
+        "read_only": false
+      },
+      "id": "comp.sidechain_listen",
+      "index": 15,
+      "kind": {
+        "default": false,
+        "type": "boolean"
+      },
+      "name": "Sidechain Listen",
+      "order": 9,
+      "page": "timing",
+      "suggested_control": "toggle"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": false,
+        "modulatable": false,
+        "read_only": true
+      },
+      "id": "meter.input",
+      "index": 16,
+      "kind": {
+        "maximum": 12.0,
+        "minimum": -60.0,
+        "type": "meter",
+        "unit": "dB"
+      },
+      "name": "Input",
+      "order": 5,
+      "page": "output",
+      "suggested_control": "meter"
+    },
+    {
+      "flags": {
+        "advanced": false,
+        "automatable": false,
+        "modulatable": false,
+        "read_only": true
+      },
+      "id": "meter.output",
+      "index": 17,
+      "kind": {
+        "maximum": 12.0,
+        "minimum": -60.0,
+        "type": "meter",
+        "unit": "dB"
+      },
+      "name": "Output",
+      "order": 6,
       "page": "output",
       "suggested_control": "meter"
     }
