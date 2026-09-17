@@ -48,6 +48,8 @@ const METER_RELEASE_S: f32 = 0.3;
 
 /// Below this the meter reads its floor rather than minus infinity.
 const METER_FLOOR_DB: f32 = -40.0;
+const LEVEL_METER_FLOOR_DB: f32 = -60.0;
+const LEVEL_METER_CEILING_DB: f32 = 12.0;
 
 /// One side's detector and envelopes. The envelopes are in decibels of
 /// reduction, at or above zero.
@@ -94,12 +96,16 @@ pub struct Engine {
     link: f32,
     mix: f32,
     bypass: bool,
+    range: f32,
+    sidechain_listen: bool,
     meter_release: f32,
 
     lanes: [Lane; 2],
     /// The widest reduction applied lately, in dB, letting go at the
     /// meter's rate.
     meter_reduction: f32,
+    meter_input: f32,
+    meter_output: f32,
 }
 
 impl Default for Engine {
@@ -123,9 +129,13 @@ impl Default for Engine {
             link: 1.0,
             mix: 1.0,
             bypass: false,
+            range: 60.0,
+            sidechain_listen: false,
             meter_release: 1.0,
             lanes: [Lane::default(), Lane::default()],
             meter_reduction: 0.0,
+            meter_input: 0.0,
+            meter_output: 0.0,
         }
     }
 }
@@ -163,6 +173,8 @@ impl Engine {
         self.threshold = self.threshold_target;
         self.makeup = self.makeup_target;
         self.meter_reduction = 0.0;
+        self.meter_input = 0.0;
+        self.meter_output = 0.0;
     }
 
     pub fn set_parameter(&mut self, index: u32, value: f64) -> bool {
@@ -183,6 +195,17 @@ impl Engine {
                 METER_FLOOR_DB,
                 0.0,
             )));
+        } else if index == INPUT_LEVEL || index == OUTPUT_LEVEL {
+            let level = if index == INPUT_LEVEL {
+                self.meter_input
+            } else {
+                self.meter_output
+            };
+            return Some(f64::from(clamp(
+                gain_to_db(level),
+                LEVEL_METER_FLOOR_DB,
+                LEVEL_METER_CEILING_DB,
+            )));
         }
         self.settings.get(index)
     }
@@ -194,7 +217,7 @@ impl Engine {
     /// The reduction the current settings would take from a steady level,
     /// once the ballistics have settled: the static transfer curve.
     pub fn static_reduction_db(&self, level_db: f32) -> f32 {
-        reduction_db(level_db, self.threshold_target, self.slope, self.knee)
+        reduction_db(level_db, self.threshold_target, self.slope, self.knee).min(self.range)
     }
 
     /// The makeup in force, manual and automatic together, in dB.
@@ -276,12 +299,15 @@ impl Engine {
         // added to whatever the knob says.
         let automatic = if settings.engaged(AUTO_MAKEUP) {
             0.5 * reduction_db(0.0, self.threshold_target, self.slope, self.knee)
+                .min(settings.value(RANGE))
         } else {
             0.0
         };
         self.makeup_target = settings.value(MAKEUP) + automatic;
         self.mix = settings.value(MIX) * 0.01;
         self.bypass = settings.engaged(BYPASS);
+        self.range = settings.value(RANGE);
+        self.sidechain_listen = settings.engaged(SIDECHAIN_LISTEN);
         self.smoothing = one_pole(SMOOTHING_S, rate);
         self.meter_release = one_pole(METER_RELEASE_S, rate);
     }
@@ -293,13 +319,22 @@ impl Engine {
     #[inline]
     pub fn process(&mut self, left: f32, right: f32) -> (f32, f32) {
         let inputs = [sanitise(left), sanitise(right)];
+        let input_peak = abs(inputs[0]).max(abs(inputs[1]));
         self.threshold += (self.threshold_target - self.threshold) * self.smoothing;
         self.makeup += (self.makeup_target - self.makeup) * self.smoothing;
 
         // Detect: each side's level in dB, after the sidechain filter.
         let mut levels = [0.0_f32; 2];
-        for ((lane, input), level) in self.lanes.iter_mut().zip(inputs).zip(levels.iter_mut()) {
+        let mut sides = [0.0_f32; 2];
+        for (((lane, input), level), side_output) in self
+            .lanes
+            .iter_mut()
+            .zip(inputs)
+            .zip(levels.iter_mut())
+            .zip(sides.iter_mut())
+        {
             let side = lane.high_pass.process(input);
+            *side_output = side;
             *level = if self.rms {
                 // Sine-calibrated: a full-scale sine reads 0 dB, as it does
                 // on the peak detector, so the threshold means the same
@@ -323,13 +358,14 @@ impl Engine {
 
         let mut outputs = [0.0_f32; 2];
         let mut widest = 0.0_f32;
-        for ((lane, input), (level, output)) in self
+        for (channel, ((lane, input), (level, output))) in self
             .lanes
             .iter_mut()
             .zip(inputs)
             .zip(heard.into_iter().zip(outputs.iter_mut()))
+            .enumerate()
         {
-            let wanted = reduction_db(level, self.threshold, self.slope, self.knee);
+            let wanted = reduction_db(level, self.threshold, self.slope, self.knee).min(self.range);
             lane.env_fixed = follow(lane.env_fixed, wanted, self.attack, self.release_fixed);
             lane.env_fast = follow(lane.env_fast, wanted, self.attack, self.release_fast);
             lane.env_slow = follow(lane.env_slow, wanted, self.attack, self.release_slow);
@@ -343,6 +379,8 @@ impl Engine {
             }
             *output = if self.bypass {
                 input
+            } else if self.sidechain_listen {
+                sides[channel]
             } else {
                 let wet = input * db_to_gain(self.makeup - reduction);
                 // Weighted so that either end of the knob is exact: all dry
@@ -358,6 +396,17 @@ impl Engine {
             sanitise(self.meter_reduction + (widest - self.meter_reduction) * self.meter_release);
         if widest > self.meter_reduction {
             self.meter_reduction = widest;
+        }
+        self.meter_input =
+            sanitise(self.meter_input + (input_peak - self.meter_input) * self.meter_release);
+        if input_peak > self.meter_input {
+            self.meter_input = input_peak;
+        }
+        let output_peak = abs(outputs[0]).max(abs(outputs[1]));
+        self.meter_output =
+            sanitise(self.meter_output + (output_peak - self.meter_output) * self.meter_release);
+        if output_peak > self.meter_output {
+            self.meter_output = output_peak;
         }
         (outputs[0], outputs[1])
     }
@@ -605,6 +654,25 @@ mod tests {
     }
 
     #[test]
+    fn range_caps_the_gain_reduction() {
+        let mut engine = textbook();
+        assert!(engine.set_parameter(RANGE, 3.0));
+        let reduction = measured_reduction(&mut engine, -6.0);
+        assert!((reduction - 3.0).abs() < 0.2, "reduction {reduction}");
+        assert!((engine.static_reduction_db(-6.0) - 3.0).abs() < 1.0e-6);
+    }
+
+    #[test]
+    fn input_and_output_meters_follow_the_audio() {
+        let mut engine = textbook();
+        let reduction = measured_reduction(&mut engine, -6.0);
+        let input = engine.parameter(INPUT_LEVEL).unwrap() as f32;
+        let output = engine.parameter(OUTPUT_LEVEL).unwrap() as f32;
+        assert!((input - -6.0).abs() < 0.1, "input {input}");
+        assert!((output - (-6.0 - reduction)).abs() < 0.5, "output {output}");
+    }
+
+    #[test]
     fn the_sidechain_filter_keeps_the_bass_out_of_the_detector_only() {
         let mut engine = textbook();
         assert!(engine.set_parameter(SIDECHAIN_HPF, 3.0));
@@ -615,6 +683,18 @@ mod tests {
         assert!((bass - loud).abs() < 0.01, "bass {bass} against {loud}");
         let reduction = measured_reduction(&mut engine, -6.0);
         assert!((reduction - 9.0).abs() < 0.3, "at 1 kHz {reduction}");
+    }
+
+    #[test]
+    fn sidechain_listen_routes_the_filtered_detector_signal() {
+        let mut engine = textbook();
+        assert!(engine.set_parameter(SIDECHAIN_HPF, 3.0));
+        assert!(engine.set_parameter(SIDECHAIN_LISTEN, 1.0));
+        let loud = db_to_gain(-6.0);
+        let (bass, _) = peaks_of(&mut engine, (loud, loud), 40.0, 1.0);
+        assert!(bass < loud * 0.1, "filtered bass {bass}");
+        let (mid, _) = peaks_of(&mut engine, (loud, loud), 2_000.0, 0.5);
+        assert!((mid - loud).abs() < 0.02, "mid {mid} against {loud}");
     }
 
     #[test]
@@ -661,6 +741,20 @@ mod tests {
         assert_eq!(other.parameter(SIDECHAIN_HPF), Some(2.0));
         assert!(!other.load_state(&block[..7]));
         assert!(!other.load_state(&block[..8]));
+    }
+
+    #[test]
+    fn version_one_state_loads_with_the_new_controls_at_safe_defaults() {
+        let mut original = prepared();
+        assert!(original.set_parameter(THRESHOLD, -24.5));
+        let mut block = [0_u8; STATE_BYTES];
+        original.save_state(&mut block).unwrap();
+
+        let mut migrated = prepared();
+        assert!(migrated.load_state(&block[..14 * 4]));
+        assert_eq!(migrated.parameter(THRESHOLD), Some(-24.5));
+        assert_eq!(migrated.parameter(RANGE), Some(60.0));
+        assert_eq!(migrated.parameter(SIDECHAIN_LISTEN), Some(0.0));
     }
 
     #[test]

@@ -3,10 +3,10 @@ id = "org.rackforge.rf-comp"
 name = "RF-Comp"
 short_name = "RF-CMP"
 vendor = "RackForge Community"
-version = "0.1.0"
-description = "A feed-forward stereo compressor: threshold, ratio and a soft knee, peak or RMS detection, a filtered sidechain, stereo link, parallel mix, and a gain-reduction meter."
+version = "0.2.0"
+description = "A feed-forward stereo compressor with a soft knee, bounded gain-reduction range, peak or RMS detection, filtered sidechain audition, stereo link, parallel mix, and live input, output and reduction meters."
 kind = "effect"
-state_version = 1
+state_version = 2
 capabilities = [
     "audio_input",
     "audio_output",

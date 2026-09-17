@@ -45,6 +45,10 @@ impl Processor for RfCompProcessor {
         self.engine.parameter(index)
     }
 
+    fn latency_frames(&self) -> u32 {
+        0
+    }
+
     fn reset(&mut self) {
         self.engine.reset();
     }
@@ -179,6 +183,12 @@ mod tests {
         assert!(!processor.prepare(48_000.0, 256, 2, 3));
         assert!(!processor.prepare(384_000.0, 256, 2, 2));
         assert!(processor.prepare(48_000.0, 256, 1, 2));
+    }
+
+    #[test]
+    fn reports_zero_latency_to_the_host() {
+        let processor = prepared();
+        assert_eq!(processor.latency_frames(), 0);
     }
 
     #[test]

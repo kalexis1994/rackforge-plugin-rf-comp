@@ -56,6 +56,26 @@
       "name": "Vocal-ish Smooth",
       "order": 4,
       "tags": []
+    },
+    {
+      "bank": "factory",
+      "category": "Setting",
+      "description": "Four to one with a twenty-millisecond attack and six decibels of range: adds movement while keeping the first hit intact.",
+      "editable": false,
+      "id": "drum_bus",
+      "name": "Drum Bus",
+      "order": 5,
+      "tags": []
+    },
+    {
+      "bank": "factory",
+      "category": "Setting",
+      "description": "Two to one over a broad knee with automatic release and eight decibels of range: restrained long-term levelling.",
+      "editable": false,
+      "id": "level_rider",
+      "name": "Level Rider",
+      "order": 6,
+      "tags": []
     }
   ],
   "schema_version": 1

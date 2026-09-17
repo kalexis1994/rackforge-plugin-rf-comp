@@ -134,7 +134,7 @@ def make_banner() -> None:
     title = font(96)
     draw.text((1180, 160), "RF-COMP", font=title, fill=INK, anchor="mm")
     subtitle = font(34)
-    draw.text((1180, 240), "Feed-forward stereo compressor", font=subtitle, fill=ACCENT, anchor="mm")
+    draw.text((1180, 240), "Dynamics · sidechain · parallel blend", font=subtitle, fill=ACCENT, anchor="mm")
     image.save(OUTPUT / "banner.png")
 
 
@@ -145,13 +145,13 @@ def make_splash() -> None:
     title = font(150)
     draw.text((960, 200), "RF-COMP", font=title, fill=INK, anchor="mm")
     subtitle = font(44)
-    draw.text((960, 320), "Feed-forward stereo compressor", font=subtitle, fill=ACCENT, anchor="mm")
+    draw.text((960, 320), "Dynamics · sidechain · parallel blend", font=subtitle, fill=ACCENT, anchor="mm")
     draw.rounded_rectangle([560, 420, 1360, 920], radius=40, fill=PANEL_LIGHT, outline=STEEL, width=4)
     transfer_curve(draw, (620, 470, 1300, 870), stroke=10)
     footer = font(34)
     draw.text(
         (960, 990),
-        "soft knee  ·  peak or RMS  ·  filtered sidechain  ·  stereo link  ·  parallel mix  ·  gain reduction meter",
+        "live transfer  ·  bounded range  ·  detector listen  ·  stereo link  ·  input, output and reduction meters",
         font=footer,
         fill=MUTED,
         anchor="mm",

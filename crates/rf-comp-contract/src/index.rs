@@ -19,6 +19,14 @@ pub const MIX: u32 = 11;
 pub const BYPASS: u32 = 12;
 /// Read-only: how much gain the compressor is taking away, in dB at or below 0.
 pub const REDUCTION: u32 = 13;
+/// Maximum gain reduction the compressor may apply, in dB.
+pub const RANGE: u32 = 14;
+/// Routes the filtered detector signal to the output for setup.
+pub const SIDECHAIN_LISTEN: u32 = 15;
+/// Read-only peak input level in dBFS.
+pub const INPUT_LEVEL: u32 = 16;
+/// Read-only peak output level in dBFS.
+pub const OUTPUT_LEVEL: u32 = 17;
 
 /// The `Detector` choices, by value.
 pub const DETECTOR_PEAK: u32 = 0;
